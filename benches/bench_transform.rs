@@ -2,7 +2,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use csv_to_json::ApplicationOptions;
 
 const BENCHMARK_PATH: &str = "benchmark.csv";
@@ -21,7 +21,10 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let _ = c.bench_function("transform", |b| {
         b.iter(|| {
-            let options = ApplicationOptions { input: vec![BENCHMARK_PATH.to_owned()], output: None};
+            let options = ApplicationOptions {
+                input: vec![BENCHMARK_PATH.to_owned()],
+                output: None,
+            };
             let _ = csv_to_json::run_by_option(&options).unwrap();
             std::fs::remove_file("output.json")
         })

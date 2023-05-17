@@ -1,16 +1,12 @@
-use std::error::Error;
-use std::fs;
-use std::fs::File;
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::string::String;
-
-use csv::{Reader, StringRecord};
-
 use crate::parsing::arg_parse;
 use clap::Parser;
+use color_eyre::eyre::Result;
+use csv::{Reader, StringRecord};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use serde_json::{map::Map, Value};
+use std::fs::{self, File};
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 mod parsing;
 
@@ -32,48 +28,45 @@ pub struct ProcessingUnit {
     output: PathBuf,
 }
 
-pub fn convert_line(headers: &[String], record: &StringRecord) -> Value {
+pub fn convert_line(headers: &[String], record: &StringRecord) -> Result<Value> {
     let mut line = Map::new();
     headers.iter().enumerate().for_each(|(i, h)| {
-        let value = (record.get(i).unwrap()).to_string();
+        let value = record.get(i).unwrap().to_string();
         line.insert(h.to_string(), Value::String(value));
     });
 
-    Value::Object(line)
+    Ok(Value::Object(line))
 }
 
-pub fn write_to_file(mut rdr: Reader<File>, headers: &[String], output: &PathBuf) {
-    if let Ok(mut file_handler) = File::create(output) {
-        file_handler.write(b"[").unwrap();
-        rdr.records()
-            .filter_map(Result::ok)
-            .enumerate()
-            .for_each(|(i, record)| {
-                if i > 0 {
-                    file_handler.write(b",\n").unwrap();
-                }
-                let converted_line_output = convert_line(headers, &record);
-                serde_json::to_writer(&mut file_handler, &converted_line_output).unwrap();
-            });
-        file_handler.write(b"]").unwrap();
+pub fn write_to_file(mut rdr: Reader<File>, headers: &[String], output: &PathBuf) -> Result<()> {
+    let mut file_handler = File::create(output)?;
+    file_handler.write(b"[")?;
+    for (i, record) in rdr.records().filter_map(Result::ok).enumerate() {
+        if i > 0 {
+            file_handler.write(b",\n")?;
+        }
+        let converted_line_output = convert_line(headers, &record)?;
+        serde_json::to_writer(&mut file_handler, &converted_line_output)?;
     }
+    file_handler.write(b"]")?;
+
+    Ok(())
 }
 
-pub fn write_to_stdout(mut rdr: Reader<File>, headers: &[String]) {
+pub fn write_to_stdout(mut rdr: Reader<File>, headers: &[String]) -> Result<()> {
     println!("[");
-    rdr.records()
-        .filter_map(Result::ok)
-        .enumerate()
-        .for_each(|(i, record)| {
-            let converted_line_output = convert_line(headers, &record);
-            if i == 0 {
-                print!("{}", converted_line_output);
-            } else {
-                println!(",");
-                print!(",{}", converted_line_output);
-            }
-        });
+    for (i, record) in rdr.records().filter_map(Result::ok).enumerate() {
+        let converted_line_output = convert_line(headers, &record)?;
+        if i == 0 {
+            print!("{}", converted_line_output);
+        } else {
+            println!(",");
+            print!(",{}", converted_line_output);
+        }
+    }
     println!("]");
+
+    Ok(())
 }
 
 fn build_output_path(output: &Option<String>, input: &Path) -> PathBuf {
@@ -124,36 +117,36 @@ pub fn collect_files(options: &ApplicationOptions) -> Vec<ProcessingUnit> {
                 }
                 // if the path matched but was unreadable,
                 // thereby preventing its contents from matching
-                Err(e) => println!("{:?}", e),
+                Err(e) => eprintln!("{:?}", e),
             }
         }
     }
     files_to_process
 }
 
-pub fn convert_data(processing_unit: &ProcessingUnit) {
+pub fn convert_data(processing_unit: &ProcessingUnit) -> Result<()> {
     if !Path::exists(Path::new(&processing_unit.input)) {
         panic!("{:?}", &processing_unit.input);
     }
 
-    let mut rdr = Reader::from_path(&processing_unit.input).unwrap();
+    let mut rdr = Reader::from_path(&processing_unit.input)?;
     let headers: Vec<String> = rdr
-        .headers()
-        .unwrap()
+        .headers()?
         .iter()
         .map(|s| String::from(s).replace('\"', "\\\""))
         .collect();
 
-    write_to_file(rdr, &headers, &processing_unit.output)
-}
-
-pub fn run_by_option(options: &ApplicationOptions) -> Result<(), Box<dyn Error>> {
-    let files = collect_files(options);
-    files.par_iter().for_each(convert_data);
+    write_to_file(rdr, &headers, &processing_unit.output)?;
     Ok(())
 }
 
-pub fn run() -> Result<(), Box<dyn Error>> {
+pub fn run_by_option(options: &ApplicationOptions) -> Result<()> {
+    let files = collect_files(options);
+    let r: Result<Vec<_>, _> = files.par_iter().map(convert_data).collect();
+    r.map(|_| ())
+}
+
+pub fn run() -> Result<()> {
     let options: ApplicationOptions = arg_parse();
     run_by_option(&options)
 }

@@ -13,11 +13,12 @@ clap = { version = "3.1", features = ["derive"] }
 log = "0.4"
 env_logger = "0.10"
 serde_json = "1.0"
+color-eyre = { version = "0.6", default-features = false }
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.4"
 assert_cmd = "2.0"
-predicates = "2.1"
+predicates = "3.0"
 
 [[bench]]
 name = "bench_transform"

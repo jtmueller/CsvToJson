@@ -1,5 +1,7 @@
-/** This converts a csv file to a json file.
- */
-fn main() {
-    csv_to_json::run().unwrap()
+use color_eyre::eyre::Result;
+
+fn main() -> Result<()> {
+    color_eyre::install()?;
+    csv_to_json::run()?;
+    Ok(())
 }
