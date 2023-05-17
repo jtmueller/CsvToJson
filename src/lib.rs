@@ -12,6 +12,7 @@ use csv::{Reader, StringRecord};
 use crate::parsing::arg_parse;
 use clap::Parser;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+use serde_json::{map::Map, Value};
 
 mod parsing;
 
@@ -20,10 +21,10 @@ mod parsing;
 #[clap(version = "0.1")]
 #[clap(about = "Converts csv files to json", long_about = None)]
 pub struct ApplicationOptions {
-    #[clap(long, multiple_values = true)]
+    #[clap(long, short, multiple_values = true)]
     pub input: Vec<String>,
 
-    #[clap(long, value_parser)]
+    #[clap(long, short, value_parser)]
     pub output: Option<String>,
 }
 
@@ -33,40 +34,48 @@ pub struct ProcessingUnit {
     output: PathBuf,
 }
 
-pub fn convert_line(headers: &[String], record: &StringRecord) -> String {
-    let mut line = "{".to_owned();
+pub fn convert_line(headers: &[String], record: &StringRecord) -> Value {
+    let mut line = Map::new();
     headers.iter().enumerate().for_each(|(i, h)| {
         let value = (record.get(i).unwrap()).to_string();
-        line.push('"');
-        line.push_str(h);
-        line.push_str("\":\"");
-        line.push_str(&value.replace('\"', "\\\""));
-        line.push_str("\",");
+        line.insert(h.to_string(), Value::String(value));
     });
 
-    let mut a = line[0..line.len() - 1].to_string();
-    a.push_str("}\n");
-    a
+    Value::Object(line)
 }
 
 pub fn write_to_file(mut rdr: Reader<File>, headers: &[String], output: &PathBuf) {
     if let Ok(mut file_handler) = File::create(output) {
-        rdr.records().for_each(|optional_record| {
-            if let Ok(record) = optional_record {
+        file_handler.write(b"[").unwrap();
+        rdr.records()
+            .filter_map(Result::ok)
+            .enumerate()
+            .for_each(|(i, record)| {
+                if i > 0 {
+                    file_handler.write(b",\n").unwrap();
+                }
                 let converted_line_output = convert_line(headers, &record);
-                let _ = file_handler.write_all(converted_line_output.as_bytes());
-            }
-        });
+                serde_json::to_writer(&mut file_handler, &converted_line_output).unwrap();
+            });
+        file_handler.write(b"]").unwrap();
     }
 }
 
 pub fn write_to_stdout(mut rdr: Reader<File>, headers: &[String]) {
-    rdr.records().for_each(|optional_record| {
-        if let Ok(record) = optional_record {
+    println!("[");
+    rdr.records()
+        .filter_map(Result::ok)
+        .enumerate()
+        .for_each(|(i, record)| {
             let converted_line_output = convert_line(headers, &record);
-            println!("{}", converted_line_output);
-        }
-    });
+            if i == 0 {
+                print!("{}", converted_line_output);
+            } else {
+                println!(",");
+                print!(",{}", converted_line_output);
+            }
+        });
+    println!("]");
 }
 
 fn build_output_path(output: &Option<String>, input: &Path) -> PathBuf {
@@ -87,9 +96,9 @@ fn build_output_path(output: &Option<String>, input: &Path) -> PathBuf {
     let elements = input.iter();
     let size = input.iter().count();
     for (index, part) in elements.enumerate() {
-        let casted_index = index as i32;
-        let casted_size = size as i32 - 1;
-        if casted_index < casted_size {
+        let index = index as i32;
+        let size = size as i32 - 1;
+        if index < size {
             output_directory.push(part)
         }
     }
