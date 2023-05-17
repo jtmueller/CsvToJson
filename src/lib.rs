@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use std::error::Error;
 use std::fs;
 use std::fs::File;
@@ -118,7 +116,7 @@ pub fn collect_files(options: &ApplicationOptions) -> Vec<ProcessingUnit> {
         for entry in glob::glob(argument).unwrap() {
             match entry {
                 Ok(input) => {
-                    let output = build_output_path(options.output.borrow(), &input);
+                    let output = build_output_path(&options.output, &input);
 
                     let processing_unit = ProcessingUnit { input, output };
 
