@@ -65,7 +65,7 @@ pub fn convert_line(
             }
         } else if let Some(numeric_fields) = &options.numeric_fields {
             if numeric_fields.iter().any(|f| f.matches(header_name)) {
-                if value.len() == 0 {
+                if value.is_empty() {
                     Value::Null
                 } else if let Ok(number) = Number::from_str(value) {
                     Value::Number(number)
