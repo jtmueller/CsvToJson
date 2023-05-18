@@ -1,13 +1,15 @@
 use crate::ApplicationOptions;
 use clap::Parser;
 use log::info;
-use std::fmt::{Debug, Formatter};
 
 impl Clone for ApplicationOptions {
     fn clone(&self) -> Self {
         ApplicationOptions {
             input: self.input.clone(),
             output: self.output.clone(),
+            numeric_fields: self.numeric_fields.clone(),
+            pretty_print: self.pretty_print,
+            auto_numbers: self.auto_numbers,
         }
     }
 }
@@ -17,16 +19,10 @@ impl Default for ApplicationOptions {
         Self {
             input: vec!["".to_owned()],
             output: None,
+            numeric_fields: None,
+            pretty_print: false,
+            auto_numbers: false,
         }
-    }
-}
-
-impl Debug for ApplicationOptions {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("")
-            .field(&self.input)
-            .field(&self.output)
-            .finish()
     }
 }
 
@@ -36,7 +32,6 @@ pub fn arg_parse() -> ApplicationOptions {
     let cli = ApplicationOptions::parse();
 
     info!("Parsed following arguments: ");
-    info!("input: {:?}", &cli.input);
-    info!("output: {:?}", &cli.output);
+    info!("{:?}", &cli);
     cli
 }
