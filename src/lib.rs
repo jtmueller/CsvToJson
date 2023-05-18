@@ -40,15 +40,15 @@ pub fn convert_line(headers: &[String], record: &StringRecord) -> Result<Value> 
 
 pub fn write_to_file(mut rdr: Reader<File>, headers: &[String], output: &PathBuf) -> Result<()> {
     let mut file_handler = File::create(output)?;
-    file_handler.write(b"[")?;
+    file_handler.write_all(b"[")?;
     for (i, record) in rdr.records().filter_map(Result::ok).enumerate() {
         if i > 0 {
-            file_handler.write(b",\n")?;
+            file_handler.write_all(b",\n")?;
         }
         let converted_line_output = convert_line(headers, &record)?;
         serde_json::to_writer(&mut file_handler, &converted_line_output)?;
     }
-    file_handler.write(b"]")?;
+    file_handler.write_all(b"]")?;
 
     Ok(())
 }

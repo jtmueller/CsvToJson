@@ -10,3 +10,7 @@
 **/*.rs.bk
 
 .idea
+
+/tests/**/*.csv
+/tests/**/*.json
+/output/**/*.json

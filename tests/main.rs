@@ -84,10 +84,7 @@ fn test_input_output() {
         .code(0);
 
     let content = fs::read_to_string(&output_file_for_test).unwrap();
-    assert_eq!(
-        content,
-        "{\"header_1\":\"Value_1\",\"header_2\":\"value_2\"}\n"
-    );
+    assert_eq!(content, r#"[{"header_1":"Value_1","header_2":"value_2"}]"#);
 
     after(&input_file_for_test, &output_file_for_test);
 }
@@ -113,10 +110,7 @@ fn test_input_output_by_globbing() {
         .code(0);
 
     let content = fs::read_to_string(output_file_for_test).unwrap();
-    assert_eq!(
-        content,
-        "{\"header_1\":\"Value_1\",\"header_2\":\"value_2\"}\n"
-    );
+    assert_eq!(content, r#"[{"header_1":"Value_1","header_2":"value_2"}]"#);
     fs::remove_dir_all("output").unwrap();
     fs::remove_dir_all("tests/input_output_by_globbing").unwrap();
 }
@@ -139,9 +133,6 @@ fn test_input_by_globbing() {
         .code(0);
 
     let content = fs::read_to_string(output_file_for_test).unwrap();
-    assert_eq!(
-        content,
-        "{\"header_1\":\"Value_1\",\"header_2\":\"value_2\"}\n"
-    );
+    assert_eq!(content, r#"[{"header_1":"Value_1","header_2":"value_2"}]"#);
     fs::remove_dir_all("tests/input_by_globbing").unwrap();
 }
