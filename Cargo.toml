@@ -2,7 +2,7 @@
 name = "csv_to_json"                                 # the name of the package
 version = "0.1.0"                                    # the current version, obeying semver
 authors = ["Darius Murawski <darius@murawski.blog>"]
-edition = "2018"
+edition = "2021"
 license = "MIT"
 
 [dependencies]
