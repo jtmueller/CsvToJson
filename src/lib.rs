@@ -6,7 +6,7 @@ use csv::{Reader, StringRecord};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use serde_json::{map::Map, Number, Value};
 use std::fs::{self, File};
-use std::io::Write;
+use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 use wildmatch::WildMatch;
 
@@ -90,7 +90,7 @@ pub fn write_to_file(
     output: &PathBuf,
     options: &ApplicationOptions,
 ) -> Result<()> {
-    let mut file_handler = File::create(output)?;
+    let mut file_handler = BufWriter::new(File::create(output)?);
     file_handler.write_all(b"[")?;
     for (i, record) in rdr.records().filter_map(Result::ok).enumerate() {
         if i > 0 {
@@ -104,6 +104,7 @@ pub fn write_to_file(
         }
     }
     file_handler.write_all(b"]")?;
+    file_handler.flush()?;
 
     Ok(())
 }
