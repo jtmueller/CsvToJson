@@ -38,12 +38,16 @@ pub struct ApplicationOptions {
     pub pretty_print: bool,
 
     /// Delimiter to use for CSV parsing
-    #[clap(long, short, default_value_t = b',')]
+    #[clap(long, short, default_value_t = b',', value_parser=parse_delimiter)]
     pub delimiter: u8,
 }
 
 fn parse_wildmatch(pattern: &str) -> Result<WildMatch> {
     Ok(WildMatch::new(pattern))
+}
+
+fn parse_delimiter(pattern: &str) -> Result<u8> {
+    Ok(pattern.as_bytes()[0])
 }
 
 #[derive(Debug)]
