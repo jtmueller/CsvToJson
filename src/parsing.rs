@@ -10,6 +10,7 @@ impl Clone for ApplicationOptions {
             numeric_fields: self.numeric_fields.clone(),
             pretty_print: self.pretty_print,
             auto_numbers: self.auto_numbers,
+            delimiter: self.delimiter,
         }
     }
 }
@@ -22,6 +23,7 @@ impl Default for ApplicationOptions {
             numeric_fields: None,
             pretty_print: false,
             auto_numbers: false,
+            delimiter: b',',
         }
     }
 }

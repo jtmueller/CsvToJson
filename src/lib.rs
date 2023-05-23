@@ -2,7 +2,7 @@ use crate::parsing::arg_parse;
 use clap::Parser;
 use color_eyre::eyre::Result;
 use core::str::FromStr;
-use csv::{Reader, StringRecord};
+use csv::{Reader, ReaderBuilder, StringRecord};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use serde_json::{map::Map, Number, Value};
 use std::fs::{self, File};
@@ -36,6 +36,10 @@ pub struct ApplicationOptions {
     /// Pretty print JSON output
     #[clap(long)]
     pub pretty_print: bool,
+
+    /// Delimiter to use for CSV parsing
+    #[clap(long, short, default_value_t = b',')]
+    pub delimiter: u8,
 }
 
 fn parse_wildmatch(pattern: &str) -> Result<WildMatch> {
@@ -189,7 +193,10 @@ pub fn convert_data(processing_unit: &ProcessingUnit, options: &ApplicationOptio
         panic!("{:?}", &processing_unit.input);
     }
 
-    let mut rdr = Reader::from_path(&processing_unit.input)?;
+    let mut rdr = ReaderBuilder::new()
+        .delimiter(options.delimiter)
+        .from_path(&processing_unit.input)?;
+
     let headers: Vec<String> = rdr
         .headers()?
         .iter()
@@ -197,6 +204,7 @@ pub fn convert_data(processing_unit: &ProcessingUnit, options: &ApplicationOptio
         .collect();
 
     write_to_file(rdr, &headers, &processing_unit.output, options)?;
+
     Ok(())
 }
 

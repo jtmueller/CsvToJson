@@ -27,6 +27,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 numeric_fields: None,
                 pretty_print: false,
                 auto_numbers: false,
+                delimiter: b',',
             };
             let _ = csv_to_json::run_by_option(&options).unwrap();
             std::fs::remove_file("output.json")
