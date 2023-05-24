@@ -25,7 +25,7 @@ pub struct ApplicationOptions {
     #[clap(long, short)]
     pub output: Option<String>,
 
-    /// Fields to convert to numbers. Simple wildcards are supported, if the name is in quotes.
+    /// Fields to convert to numbers. Simple wildcards are supported, if the name is in quotes
     #[clap(long, num_args=1.., value_parser=parse_wildmatch)]
     pub numeric_fields: Option<Vec<WildMatch>>,
 
@@ -34,12 +34,16 @@ pub struct ApplicationOptions {
     pub auto_numbers: bool,
 
     /// Pretty print JSON output
-    #[clap(long)]
+    #[clap(long, conflicts_with = "jsonl")]
     pub pretty_print: bool,
 
     /// Delimiter to use for CSV parsing
-    #[clap(long, short, default_value_t = b',', value_parser=parse_delimiter)]
+    #[clap(long, short, default_value = ",", value_parser=parse_delimiter)]
     pub delimiter: u8,
+
+    /// Use JSONL format instead of JSON.
+    #[clap(long, conflicts_with = "pretty_print")]
+    pub jsonl: bool,
 }
 
 fn parse_wildmatch(pattern: &str) -> Result<WildMatch> {
@@ -99,19 +103,23 @@ pub fn write_to_file(
     options: &ApplicationOptions,
 ) -> Result<()> {
     let mut file_handler = BufWriter::new(File::create(output)?);
-    file_handler.write_all(b"[")?;
+    if !options.jsonl {
+        file_handler.write_all(b"[")?;
+    }
     for (i, record) in rdr.records().filter_map(Result::ok).enumerate() {
         if i > 0 {
-            file_handler.write_all(b",\n")?;
+            file_handler.write_all(if options.jsonl { b"\n" } else { b",\n" })?;
         }
         let converted_line_output = convert_line(headers, &record, options)?;
-        if options.pretty_print {
+        if options.pretty_print && !options.jsonl {
             serde_json::to_writer_pretty(&mut file_handler, &converted_line_output)?;
         } else {
             serde_json::to_writer(&mut file_handler, &converted_line_output)?;
         }
     }
-    file_handler.write_all(b"]")?;
+    if !options.jsonl {
+        file_handler.write_all(b"]")?;
+    }
     file_handler.flush()?;
 
     Ok(())
@@ -137,7 +145,7 @@ pub fn write_to_stdout(
     Ok(())
 }
 
-fn build_output_path(output: &Option<String>, input: &Path) -> PathBuf {
+fn build_output_path(output: &Option<String>, input: &Path, jsonl: bool) -> PathBuf {
     let mut output_directory = match output {
         None => PathBuf::new(),
         Some(o) => {
@@ -164,7 +172,7 @@ fn build_output_path(output: &Option<String>, input: &Path) -> PathBuf {
 
     fs::create_dir_all(&output_directory).unwrap();
     let mut last = input.iter().last().unwrap().to_os_string();
-    last.push(".json");
+    last.push(if jsonl { ".jsonl" } else { ".json" });
     output_directory.push(last);
 
     output_directory
@@ -177,7 +185,7 @@ pub fn collect_files(options: &ApplicationOptions) -> Vec<ProcessingUnit> {
         for entry in glob::glob(argument).unwrap() {
             match entry {
                 Ok(input) => {
-                    let output = build_output_path(&options.output, &input);
+                    let output = build_output_path(&options.output, &input, options.jsonl);
 
                     let processing_unit = ProcessingUnit { input, output };
 

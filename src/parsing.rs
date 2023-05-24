@@ -11,6 +11,7 @@ impl Clone for ApplicationOptions {
             pretty_print: self.pretty_print,
             auto_numbers: self.auto_numbers,
             delimiter: self.delimiter,
+            jsonl: self.jsonl,
         }
     }
 }
@@ -24,6 +25,7 @@ impl Default for ApplicationOptions {
             pretty_print: false,
             auto_numbers: false,
             delimiter: b',',
+            jsonl: false,
         }
     }
 }
