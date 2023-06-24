@@ -26,7 +26,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 output: None,
                 numeric_fields: None,
                 pretty_print: false,
-                auto_numbers: false,
+                auto_numbers: true,
                 delimiter: b',',
                 jsonl: false,
             };
